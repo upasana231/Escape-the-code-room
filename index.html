@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escape the Code Room 🧩</title>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-image: url('code.png');
+      background-size: cover;
+      background-position: center;
+      animation: zoomInOut 10s infinite alternate ease-in-out;
+      color: #fff;
+      font-family: 'Creepster', cursive;
+      padding: 2rem;
+      text-align: center;
+      background-color: #000000e6;
+      position: relative;
+    }
+
+    h1, h2, p, #scoreBox {
+      animation: flicker 3s infinite alternate;
+      text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000, 0 0 20px #ff0000;
+    }
+
+    h2 {
+      display: none; 
+    }
+
+    p {
+      font-size: 1.5rem;
+    }
+
+    @keyframes flicker {
+      0% { opacity: 1; }
+      5% { opacity: 0.8; }
+      10% { opacity: 0.9; }
+      15% { opacity: 0.85; }
+      25% { opacity: 1; }
+      30% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
+    @keyframes zoomInOut {
+      0% { background-size: 100%; }
+      100% { background-size: 110%; }
+    }
+
+    .room {
+      display: none;
+    }
+
+    .room.active {
+      display: block;
+      animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    textarea, pre {
+      width: 80%;
+      padding: 1rem;
+      margin: 1rem auto;
+      font-size: 1rem;
+      display: block;
+      font-family: monospace;
+      background: transparent;
+      border: 1px solid red;
+      color: #ff4444;
+      text-shadow: 0 0 4px red;
+    }
+
+    textarea {
+      height: 120px;
+      resize: vertical;
+    }
+    pre {
+  white-space: pre-wrap;
+}
+
+pre span.normal {
+  color: #ff4444;
+  text-shadow: 0 0 4px red;
+}
+
+pre span.error {
+  color: #00ff00;
+  text-shadow: 0 0 6px #00ff00;
+}
+
+
+
+    button {
+      background-color: #b31212;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+    }
+
+    button:hover {
+      background-color: #7e0f0f;
+    }
+
+    #scoreBox {
+      background: #000000aa;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 1.2rem;
+      z-index: 999;
+    }
+
+    #music-toggle{
+      background: none;
+      font-size: 32px; 
+      padding: 10px 20px;    }
+    #gameOverScreen {
+      display: none; /* Hide game over screen by default */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.8); /* Dark background behind video */
+      justify-content: center;
+      align-items: center;
+      z-index: 1000; /* Ensure it covers the entire screen */
+    }
+
+    #gameOverVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* Make sure the video covers the entire screen */
+    }
+    #restartButton {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ff6347;
+      color: white;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      cursor: pointer;
+      z-index: 10000; /* Above the video */
+      border-radius: 5px;
+    }
+
+    #restartButton:hover {
+      background-color: #ff4500;
+    }
+    #victoryRoom {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: black;
+  z-index: 9999;
+}
+
+#victoryVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#homeBtn {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 28px;
+  font-size: 1.2rem;
+  background-color: #00b894;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+#homeBtn:hover {
+  background-color: #019875;
+}
+
+
+
+  </style>
+</head>
+<body>
+  <audio id="scarySound" loop>
+    <source src="audio/scary.mp3" type="audio/mpeg">
+  </audio>
+  
+  <h1>🧩 Escape the Code Room</h1>
+<p>You are trapped. Solve all code puzzles to escape!</p>
+
+<div id="scoreBox">🔢 Score: <span id="score">12</span>
+<div><button id="music-toggle" onclick="toggleMusic()">🔊</button></div></div>
+
+<!-- Game Over Screen -->
+<div id="gameOverScreen" style="display: none;">
+  <button id="restartButton" onclick="restartGame()">Restart</button>
+  <video id="gameOverVideo" autoplay muted playsinline>
+    <source src="video/gameover.mp4" type="video/mp4" />
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+<!-- Victory Room (Initially Hidden) -->
+<div id="victoryRoom" style="display: none;">
+  <video id="victoryVideo" autoplay muted playsinline>
+    <source src="video/victory.mp4" type="video/mp4" />
+    Your browser does not support the video tag.
+  </video>
+  <button id="homeBtn" onclick="goToHome()">Wanna Escape again</button>
+</div>
+
+  <div id="gameContainer"></div>
+
+  <div class="room" id="victoryRoom">
+    <h2>🎉 You Escaped!</h2>
+    <p>Congratulations, Code Hero! 🎊</p>
+    <button onclick="restartGame()">🔄 Restart Game</button>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        title: "🔐 Variables - Easy",
+        desc: "Create a variable called `name` and assign your name. Log `Hello   name!`.",
+        answerCheck: (output, code) => {
+          const match = code.match(/let\s+name\s*=\s*['"`](.*?)['"`]/);
+          return match && output.includes(`Hello ${match[1]}!`);
+        }
+      },
+      {
+        title: "🔐 Variables - Medium",
+        desc: "Create a variable `city` with your city and log `I live in city`.",
+        answerCheck: (output, code) => {
+          const match = code.match(/let\s+city\s*=\s*['"`](.*?)['"`]/);
+          return match && output.includes(`I live in ${match[1]}`);
+        }
+      },
+      {
+        title: "🔐 Variables - Hard",
+        desc: "Create variables `firstName` and `lastName` and log `Hello firstName  lastName`.",
+        answerCheck: (output, code) => {
+          const match = code.match(/let\s+firstName\s*=\s*['"`](.*?)['"`]/);
+          const match2 = code.match(/let\s+lastName\s*=\s*['"`](.*?)['"`]/);
+          return match && match2 && output.includes(`Hello ${match[1]} ${match2[1]}`);
+        }
+      },
+      {
+        title: "🔥 Loops - Easy",
+        desc: "Log numbers 1 to 3 using a for loop.",
+        answerCheck: (output) => output.includes("1") && output.includes("2") && output.includes("3")
+      },
+      {
+        title: "🔥 Loops - Medium",
+        desc: "Use a loop to log 'Torch 1 lit!' to 'Torch 5 lit!'",
+        answerCheck: (output) => output.includes("Torch 1 lit!") && output.includes("Torch 5 lit!")
+      },
+      {
+        title: "🔥 Loops - Hard",
+        desc: "Log only even numbers from 2 to 10.",
+        answerCheck: (output) => ["2", "4", "6", "8", "10"].every(num => output.includes(num))
+      },
+      {
+        title: "📦 Arrays - Easy",
+        desc: "Create an array of 3 fruits. Log the second fruit.",
+        answerCheck: (output, code) => {
+          const match = code.match(/\[\s*['"`]\w+['"`]\s*,\s*['"`](\w+)['"`]/);
+          return match && output.includes(match[1]);
+        }
+      },
+      {
+        title: "📦 Arrays - Medium",
+        desc: "Log the length of array ['a', 'b', 'c', 'd'].",
+        answerCheck: (output) => output.includes("4")
+      },
+      {
+        title: "📦 Arrays - Hard",
+        desc: "Create array [5,10,15], add 20 to it and log full array.",
+        answerCheck: (output) => output.includes("5") && output.includes("20")
+      },
+      {
+        title: "🧠 Conditionals - Easy",
+        desc: "If age is 18+, log 'Adult'. Else, log 'Minor'.",
+        answerCheck: (output) => output.toLowerCase().includes("adult") || output.toLowerCase().includes("minor")
+      },
+      {
+        title: "🧠 Conditionals - Medium",
+        desc: "Check if number is even. Log 'Even' or 'Odd'.",
+        answerCheck: (output) => output.toLowerCase().includes("even") || output.toLowerCase().includes("odd")
+      },
+      {
+        title: "🧠 Conditionals - Hard",
+        desc: "Use nested if: If score > 90 → 'A', > 75 → 'B', else 'C'",
+        answerCheck: (output) =>
+          output.includes("A") || output.includes("B") || output.includes("C")
+      },
+    ];
+    let score = 12;
+    let current = 0;
+    function loadQuestion(index) {
+  if (index >= questions.length) {
+    // Show victory screen when all questions are done
+    document.getElementById("gameContainer").innerHTML = ''; // Clear game container
+    document.getElementById("score").innerText = score; // Update score display
+    
+    const victoryRoom = document.getElementById("victoryRoom");
+    const victoryVideo = document.getElementById("victoryVideo");
+
+    // Ensure the victory room is shown
+    victoryRoom.style.display = "block";
+    victoryVideo.loop = true;
+    victoryVideo.muted = false; // 🔊 Unmute the video now
+    
+    // Play the victory video
+    victoryVideo.play();
+    // Pause background scary music
+  if (scarySound && !scarySound.paused) {
+    scarySound.pause();
+  }
+    
+    // Optionally, you can add a button to return to the home page, if needed:
+    const homeButton = document.createElement('button');
+    homeButton.textContent = "Wanna Escape again?";
+    homeButton.onclick = function() {
+      window.location.href = "index2.html"; // Redirect to home page
+    };
+    
+    victoryRoom.appendChild(homeButton);
+
+    return; // Exit after showing the victory screen
+  }
+
+  const q = questions[index];
+  document.getElementById("gameContainer").innerHTML = `
+    <div class="room active" id="room${index}">
+      <h2>${q.title}</h2>
+      <p>${q.desc}</p>
+      <textarea id="codeArea" rows="5">// your code here</textarea>
+      <button onclick="checkAnswer()">Run Code</button>
+      <pre id="outputArea"></pre>
+    </div>
+  `;
+}
+
+window.onload = () => {
+  loadQuestion(current);
+};
+const scarySound = document.getElementById('scarySound');
+const musicToggleBtn = document.getElementById("musicToggleBtn");
+
+// Preload the audio
+scarySound.load();
+
+// Try to autoplay when the game starts
+scarySound.play().catch(() => {
+  const resumeAudio = () => {
+    scarySound.play();
+    document.removeEventListener('click', resumeAudio);
+    document.removeEventListener('keydown', resumeAudio);
+  };
+  document.addEventListener('click', resumeAudio);
+  document.addEventListener('keydown', resumeAudio);
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  scarySound.play();
+  musicToggleBtn.textContent = "🔊"; // Set default icon
+  loadQuestion(current);
+});
+
+function runUserCode(code) {
+  const logs = [];
+  const originalLog = console.log;
+  console.log = (...args) => logs.push(args.join(" "));
+  let errorOccurred = false;
+
+  try {
+    eval(code);
+  } catch (err) {
+    logs.push("Error: " + err.message);
+    errorOccurred = true;
+  }
+
+  console.log = originalLog;
+
+  const styledLogs = logs.map(line => {
+    if (line.startsWith("Error:")) {
+      return `<span class="error">${line}</span>`;
+    } else {
+      return `<span class="normal">${line}</span>`;
+    }
+  }).join("<br>");
+
+  return styledLogs;
+}
+
+function goToHome() {
+  window.location.href = "index2.html";
+}
+
+
+
+
+
+function checkAnswer() {
+  const code = document.getElementById("codeArea").value;
+  const output = runUserCode(code);
+  document.getElementById("outputArea").innerHTML = output;
+
+  const isCorrect = questions[current].answerCheck(output, code);
+  if (isCorrect) {
+    current++;
+    loadQuestion(current);
+  } else {
+    score = Math.max(score - 1, 0);
+    document.getElementById("score").innerText = score;
+    if (score === 0) {
+      showGameOverScreen();
+    }
+  }
+}
+
+function showGameOverScreen() {
+  const gameOverScreen = document.getElementById("gameOverScreen");
+  const gameOverVideo = document.getElementById("gameOverVideo");
+  const gameOverSound = document.getElementById("gameOverSound");
+
+  scarySound.pause();
+
+  gameOverScreen.style.display = "flex";
+  gameOverSound.play();
+  gameOverVideo.play();
+}
+
+function showVictoryScreen() {
+  const gameContainer = document.getElementById("gameContainer");
+  const victoryRoom = document.getElementById("victoryRoom");
+  const victoryVideo = document.getElementById("victoryVideo");
+
+  if (scarySound && !scarySound.paused) {
+    scarySound.pause();
+  }
+
+  victoryVideo.currentTime = 0;
+  victoryVideo.loop = true;
+  victoryVideo.muted = false; 
+  victoryVideo.play();
+
+  // Show score
+  gameContainer.innerHTML = '';
+  document.getElementById("score").innerText = score;
+
+  // Show victory screen
+  victoryRoom.style.display = "block";
+
+  if (!document.getElementById("homeBtn")) {
+    const homeButton = document.createElement('button');
+    homeButton.id = "homeBtn";
+    homeButton.textContent = "Wanna Escape again?";
+    homeButton.onclick = function () {
+      window.location.href = "index2.html";
+    };
+    victoryRoom.appendChild(homeButton);
+  }
+}
+
+
+
+function restartGame() {
+  score = 12;
+  current = 0;
+  document.getElementById("score").innerText = score;
+  loadQuestion(current);
+
+  const gameOverScreen = document.getElementById("gameOverScreen");
+  gameOverScreen.style.display = "none";
+
+  scarySound.play();
+}
+
+function toggleMusic() {
+  const musicToggleBtn = document.getElementById("music-toggle"); 
+
+  if (scarySound.paused) {
+    scarySound.play();
+    musicToggleBtn.textContent = "🔊";
+  } else {
+    scarySound.pause();
+    musicToggleBtn.textContent = "🔇";
+  }
+}
+
+</script>
+
+</body>
+</html>
